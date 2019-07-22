@@ -21,6 +21,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"crypto/sha256"
 )
 
 func randomK(r io.Reader) (k *big.Int, err error) {
@@ -48,6 +49,39 @@ func RandomG1(r io.Reader) (*big.Int, *G1, error) {
 	}
 
 	return k, new(G1).ScalarBaseMult(k), nil
+}
+
+// HashG1 hashes string m to an element in group G1.
+func HashG1(m string) (*G1, error) {
+	h := sha256.Sum256([]byte(m))
+	hashNum := new(big.Int).SetBytes(h[:])
+	hashNum.Mod(hashNum, p)
+
+	x := intToGfP(hashNum)
+	three := newGFp(3)
+	x2, x3, rhs, y := &gfP{}, &gfP{}, &gfP{}, &gfP{}
+	for {
+		//let's check if there exists a point (X, Y) for some Y on EC -
+		// that means X^3 + 3 needs to be a quadratic residue
+
+		gfpMul(x2, x, x)
+		gfpMul(x3, x2, x)
+		gfpAdd(rhs, x3, three)
+
+		_, err := y.Sqrt(rhs)
+		if err == nil { // alternatively, if Y is not needed, big.Jacobi(rhs, P) can be used to check if rhs is quadratic residue
+			// BN curve has cofactor 1 (all points of the curve form a group where we are operating),
+			// so X (now that we know rhs is QR) is an X-coordinate of some point in a cyclic group
+			point := &curvePoint{
+				x: *x,
+				y: *y,
+				z: *newGFp(1),
+				t: *newGFp(1),
+			}
+			return &G1{point}, nil
+		}
+		gfpAdd(x, x, newGFp(1))
+	}
 }
 
 func (g *G1) String() string {
@@ -177,6 +211,100 @@ func RandomG2(r io.Reader) (*big.Int, *G2, error) {
 	}
 
 	return k, new(G2).ScalarBaseMult(k), nil
+}
+
+// HashG2 hashes string m to an element in group G2. It uses:
+// Fuentes-Castaneda, Laura, Edward Knapp, and Francisco Rodríguez-Henríquez. "Faster hashing to G_2."
+// International Workshop on Selected Areas in Cryptography. Springer, Berlin, Heidelberg, 2011.
+func HashG2(m string) (*G2, error) {
+	h := sha256.Sum256([]byte(m))
+	hashNum := new(big.Int).SetBytes(h[:])
+	hashNum.Mod(hashNum, p)
+	v := intToGfP(hashNum)
+
+	// gfp2 is (x1, y1) where x1*i + y1
+	x := gfP2{gfP{}, gfP{}}
+	xxx := gfP2{gfP{}, gfP{}}
+	for {
+		// let's try to construct a point in F(P^2) as 1 + v*i
+		x.y = *newGFp(1)
+		x.x = *v
+
+		// now we need to check if a is X-coordinate of some point
+		// on curve (if there exists b such that b^2 = a^3 + 3)
+		xxx.Square(&x)
+		xxx.Mul(&xxx, &x)
+
+		rhs := &gfP2{gfP{}, gfP{}}
+		rhs.Add(&xxx, twistB)
+
+		y := &gfP2{gfP{}, gfP{}}
+		y, err := y.Sqrt(rhs)
+
+		if err == nil { // there is a square root for rhs
+			point := &twistPoint{
+				x,
+				*y,
+				gfP2{*newGFp(0), *newGFp(1)},
+				gfP2{*newGFp(0), *newGFp(1)},
+			}
+
+			// xQ + frob(3*xQ) + frob(frob(xQ)) + frob(frob(frob(Q)))
+			// xQ:
+
+			var xpoint twistPoint
+			xpoint.Mul(point, u)
+
+			var dblxpoint twistPoint
+			dblxpoint.Double(&xpoint)
+
+			var trplxpoint twistPoint
+			trplxpoint.Add(&xpoint, &dblxpoint)
+			trplxpoint.MakeAffine()
+
+			// Frobenius(3*xQ)
+			var t1 twistPoint
+			_, err = t1.Frobenius(&trplxpoint)
+			if err != nil {
+				return nil, err
+			}
+
+			// Frobenius(Frobenius((xQ))
+			xpoint.MakeAffine()
+			var t2 twistPoint
+			_, err = t2.Frobenius(&xpoint)
+			if err != nil {
+				return nil, err
+			}
+			_, err = t2.Frobenius(&t2)
+			if err != nil {
+				return nil, err
+			}
+
+			// Frobenius(Frobenius(Frobenius(Q)))
+			var t3 twistPoint
+			_, err = t3.Frobenius(point)
+			if err != nil {
+				return nil, err
+			}
+			_, err = t3.Frobenius(&t3)
+			if err != nil {
+				return nil, err
+			}
+			_, err = t3.Frobenius(&t3)
+			if err != nil {
+				return nil, err
+			}
+
+			var f twistPoint
+			f.Add(&xpoint, &t1)
+			f.Add(&f, &t2)
+			f.Add(&f, &t3)
+
+			return &G2{&f}, nil
+		}
+		gfpAdd(v, v, newGFp(1))
+	}
 }
 
 func (e *G2) String() string {

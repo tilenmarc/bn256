@@ -1,6 +1,9 @@
 package bn256
 
-import "fmt"
+import (
+	"fmt"
+	"math/big"
+)
 
 type gfP [4]uint64
 
@@ -65,3 +68,37 @@ func (e *gfP) Unmarshal(in []byte) {
 
 func montEncode(c, a *gfP) { gfpMul(c, a, r2) }
 func montDecode(c, a *gfP) { gfpMul(c, a, &gfP{1}) }
+
+func gfPToInt(in *gfP) (*big.Int, error) {
+	in2 := &gfP{}
+	montDecode(in2, in)
+	out, succ := new(big.Int).SetString(in2.String(), 16)
+	if succ == false {
+		return nil, fmt.Errorf("failed convertion")
+	}
+	return out, nil
+}
+
+func intToGfP(in *big.Int) (*gfP) {
+	in2 := new(big.Int).Set(in)
+	out := &gfP{}
+	for i:=0; i<4; i++ {
+		out[i] = in2.Uint64()
+		in2.Rsh(in2, 64)
+	}
+	montEncode(out, out)
+	return out
+}
+
+func (e *gfP) Sqrt(g *gfP) (*gfP, error) {
+	gInt, err := gfPToInt(g)
+	if err != nil {
+		return nil, err
+	}
+	gSqrt := new(big.Int).ModSqrt(gInt, p)
+	if gSqrt == nil {
+		return nil, fmt.Errorf("no sqare root")
+	}
+	e.Set(intToGfP(gSqrt))
+	return e, nil
+}

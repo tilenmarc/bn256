@@ -1,5 +1,10 @@
 package bn256
 
+import (
+	"math/big"
+	"fmt"
+)
+
 // For details of the algorithms used, see "Multiplication and Squaring on
 // Pairing-Friendly Fields, Devegili et al.
 // http://eprint.iacr.org/2006/471.pdf.
@@ -8,6 +13,12 @@ package bn256
 // where i²=-1.
 type gfP2 struct {
 	x, y gfP // value is xi+y.
+}
+
+// gfP2Int implements a field of size P² as a quadratic extension of the base
+// field where i²=-1 with slower big.Int representation
+type gfP2Int struct {
+	X, Y *big.Int // value is xi+Y.
 }
 
 func gfP2Decode(in *gfP2) *gfP2 {
@@ -147,4 +158,75 @@ func (e *gfP2) Invert(a *gfP2) *gfP2 {
 	gfpMul(&e.x, t1, inv)
 	gfpMul(&e.y, &a.y, inv)
 	return e
+}
+
+func divBy2(a *gfP) (*gfP, error) {
+	aInt, err := gfPToInt(a)
+	if err != nil {
+		return nil, err
+	}
+	if new(big.Int).Mod(aInt, big.NewInt(2)).Sign() == 0 {
+		return intToGfP(new(big.Int).Div(aInt, big.NewInt(2))), nil
+	}
+	s := new(big.Int).Add(aInt, p)
+	return intToGfP(new(big.Int).Div(s, big.NewInt(2))), nil
+}
+
+// Sqrt returns square root of g. Let's say g = a + b*i and tSqrt = sqrt(a^2 + b^2).
+// Then Sqrt(g) = sqrt((a + tSqrt)/2) + i * b * 1 / (2*sqrt((a + tSqrt)/2)).
+func (e *gfP2) Sqrt(g *gfP2) (*gfP2, error) {
+	yy := &gfP{}
+	gfpMul(yy, &g.y, &g.y)
+	xx := &gfP{}
+	gfpMul(xx, &g.x, &g.x)
+	t := &gfP{}
+	gfpAdd(t, xx, yy)
+
+	tSqrt := &gfP{}
+	tSqrt.Sqrt(t)
+	if tSqrt == nil {                   // g.Y^2 + g.X^2 is not QR
+		return nil, fmt.Errorf("could not compute square root")
+	}
+
+	z := &gfP{}
+	gfpAdd(z, tSqrt, &g.y) // Z = g.Y + sqrt(g.Y^2 + g.X^2)
+	z, err := divBy2(z)    // Z = (g.Y + sqrt(g.Y^2 + g.X^2)) / 2
+	if err != nil {
+		return nil, err
+	}
+
+	newY := &gfP{}
+	newY, err = newY.Sqrt(z)
+	if err != nil {
+		return nil, err
+	}
+
+	if newY == nil {
+		gfpSub(z, &g.y, tSqrt) // Z = g.Y - sqrt(g.Y^2 + g.X^2)
+		z, err = divBy2(z)     // Z = (g.Y + sqrt(g.Y^2 + g.X^2)) / 2
+		if err != nil {
+			return nil, err
+		}
+		newY, err = newY.Sqrt(z)
+		if err != nil {
+			return nil, err
+		}
+		if newY == nil {
+			return nil, fmt.Errorf("could not compute square root")
+		}
+	}
+
+	newYInv := &gfP{}
+	newYInv.Invert(newY)
+	xDiv2, err := divBy2(&g.x)
+	if err != nil {
+		return nil, err
+	}
+	newX := &gfP{}
+	gfpMul(newX, xDiv2, newYInv)
+
+	e.y = *newY
+	e.x = *newX
+
+	return e, nil
 }

@@ -2,6 +2,7 @@ package bn256
 
 import (
 	"math/big"
+	"fmt"
 )
 
 // twistPoint implements the elliptic curve y²=x³+3/ξ over GF(p²). Points are
@@ -196,4 +197,31 @@ func (c *twistPoint) Neg(a *twistPoint) {
 	c.y.Neg(&a.y)
 	c.z.Set(&a.z)
 	c.t.SetZero()
+}
+
+func (c *twistPoint) Frobenius(a *twistPoint) (*twistPoint, error) {
+	// We have to convert a from the sextic twist
+	// to the full GF(P^12) group, apply the Frobenius there, and convert
+	// back.
+
+	// The twist isomorphism is (X', Y') -> (xω², yω³). If we consider just
+	// X for a moment, then after applying the Frobenius, we have x̄ω^(2p)
+	// where x̄ is the conjugate of X. If we are going to apply the inverse
+	// isomorphism we need a value with a single coefficient of ω² so we
+	// rewrite this as x̄ω^(2p-2)ω². ξ⁶ = ω and, due to the construction of
+	// P, 2p-2 is a multiple of six. Therefore we can rewrite as
+	// x̄ξ^((P-1)/3)ω² and applying the inverse isomorphism eliminates the
+	// ω².
+	// A similar argument can be made for the Y value.
+	if !a.z.IsOne() {
+		return nil, fmt.Errorf("a needs to be in affine coordinates")
+	}
+	c.x.Conjugate(&(a.x))
+	c.x.Mul(&(c.x), xiToPMinus1Over3)
+	c.y.Conjugate(&(a.y))
+	c.y.Mul(&(c.y), xiToPMinus1Over2)
+	c.z.SetOne()
+	c.t.SetOne()
+
+	return c, nil
 }

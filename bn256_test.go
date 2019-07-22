@@ -7,6 +7,9 @@ import (
 	"crypto/rand"
 
 	"golang.org/x/crypto/bn256"
+	"fmt"
+	"math"
+	"math/big"
 )
 
 func TestG1(t *testing.T) {
@@ -163,6 +166,78 @@ func TestTripartiteDiffieHellman(t *testing.T) {
 		t.Errorf("keys didn't agree")
 	}
 }
+
+func TestHashToG1(t *testing.T) {
+	s := "hello hello hello hello hello hello hello hello hello hello hello hello hello"
+	g1, err := HashG1(s)
+	if err != nil {
+		t.Errorf("hashing failed: %v", err)
+	}
+	fmt.Println("hash1", g1)
+
+	x := newGFp(100)
+	fmt.Println(x.String())
+	fmt.Println(x[0], x[1], x[2], x[3])
+
+	montDecode(x, x)
+
+
+	xx, bo := new(big.Int).SetString(x.String(), 16)
+	fmt.Println("integer", xx, bo)
+	z := &gfP{}
+	x = newGFp(int64(math.Pow(2, 62)))
+	montDecode(z, x)
+	fmt.Println(z)
+
+	w := &gfP{}
+	gfpMul(w, x, x)
+	gfpMul(w, w, w)
+	gfpMul(w, w, x)
+
+	montDecode(z, w)
+
+	fmt.Println(z)
+	fmt.Println(z[0], z[1], z[2], z[3])
+	xx, bo = new(big.Int).SetString(z.String(), 16)
+	fmt.Println("integer", xx, bo)
+
+	p, _ := new(big.Int).SetString("65000549695646603732796438742359905742825358107623003571877145026864184071783", 10)
+	test := new(big.Int).Exp(big.NewInt(2), big.NewInt(62 * 5), nil)
+	test.Mod(test, p)
+	fmt.Println("test", test)
+	a := test.Text(16)
+	fmt.Println(a)
+
+	iii := test.Uint64()
+	fmt.Println(iii)
+	//aa := uint64(a)
+	////strconv
+
+	//i := big.NewInt(5)
+	g := intToGfP(test)
+	//gh := &gfP{}
+	//montDecode(gh, g)
+	fmt.Println(g)
+	fmt.Println(g[0], g[1], g[2], g[3])
+	montDecode(z, g)
+
+	fmt.Println(z)
+	fmt.Println(z[0], z[1], z[2], z[3])
+
+	test2, err := gfPToInt(g)
+	fmt.Println(test2, err)
+
+}
+
+func TestHashToG2(t *testing.T) {
+	s := "hello hello hello hello hello hello hello hello hello hello hello hello hello"
+	g2, err := HashG2(s)
+	if err != nil {
+		t.Errorf("hashing failed: %v", err)
+	}
+	fmt.Println(g2)
+}
+
 
 func BenchmarkG1(b *testing.B) {
 	x, _ := rand.Int(rand.Reader, Order)
