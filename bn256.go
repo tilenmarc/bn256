@@ -22,6 +22,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"fmt"
 )
 
 func randomK(r io.Reader) (k *big.Int, err error) {
@@ -452,6 +453,96 @@ func RandomGT(r io.Reader) (*big.Int, *GT, error) {
 	}
 
 	return k, new(GT).ScalarBaseMult(k), nil
+}
+
+
+// returns number in P-representation: a_11*P^11 + ... + a_1*P^1 + a_0 where 0 <= a_i < P
+func intToPRepr(n *big.Int) []*big.Int {
+	nn := new(big.Int).Set(n)
+	pToI := big.NewInt(1)
+	mod := new(big.Int).Set(p)
+	a := make([]*big.Int, 12)
+	for i := 0; i < 12; i++ {
+		ai := new(big.Int).Mod(nn, mod)
+		nn.Sub(nn, ai)
+		ai.Div(ai, pToI)
+		a[i] = ai
+		if nn.Cmp(big.NewInt(0)) == 0 {
+			for {
+				i++
+				if i == 12 {
+					return a
+				}
+				a[i] = big.NewInt(0)
+			}
+		}
+		pToI.Mul(pToI, p)
+		mod.Mul(mod, p)
+	}
+
+	return a
+}
+
+// converts number in P-representation into *big.Int
+func pReprToInt(a []*big.Int) *big.Int {
+	pToI := big.NewInt(1)
+	n := big.NewInt(0)
+	for i := 0; i < 12; i++ {
+		t := new(big.Int).Mul(a[i], pToI)
+		n.Add(n, t)
+		pToI.Mul(pToI, p)
+	}
+
+	return n
+}
+
+// MapStringToGT maps a string to GT group element. Needed for example when a message to be encrypted
+// needs to be mapped into GT group.
+func MapStringToGT(msg string) (*GT, error) {
+	m := new(big.Int)
+	m.SetBytes([]byte(msg))
+	bound := new(big.Int).Exp(p, big.NewInt(12), nil)
+	if m.Cmp(bound) >= 0 {
+		return nil, fmt.Errorf("message is bigger than modulo, use key encapsulation")
+	}
+	a := intToPRepr(m)
+	g := &gfP12{}
+	g.x.x.x.SetInt(a[0])
+	g.x.x.y.SetInt(a[1])
+	g.x.y.x.SetInt(a[2])
+	g.x.y.y.SetInt(a[3])
+	g.x.z.x.SetInt(a[4])
+	g.x.z.y.SetInt(a[5])
+
+	g.y.x.x.SetInt(a[6])
+	g.y.x.y.SetInt(a[7])
+	g.y.y.x.SetInt(a[8])
+	g.y.y.y.SetInt(a[9])
+	g.y.z.x.SetInt(a[10])
+	g.y.z.y.SetInt(a[11])
+
+	return &GT{g}, nil
+}
+
+// MapGTToString maps an element from GT group to a string
+func MapGTToString(gt *GT) string {
+	a := make([]*big.Int, 12)
+	a[0], _ = gt.p.x.x.x.ToInt()
+	a[1], _ = gt.p.x.x.y.ToInt()
+	a[2], _ = gt.p.x.y.x.ToInt()
+	a[3], _ = gt.p.x.y.y.ToInt()
+	a[4], _ = gt.p.x.z.x.ToInt()
+	a[5], _ = gt.p.x.z.y.ToInt()
+
+	a[6], _ = gt.p.y.x.x.ToInt()
+	a[7], _ = gt.p.y.x.y.ToInt()
+	a[8], _ = gt.p.y.y.x.ToInt()
+	a[9], _ = gt.p.y.y.y.ToInt()
+	a[10], _ = gt.p.y.z.x.ToInt()
+	a[11], _ = gt.p.y.z.y.ToInt()
+
+	r := pReprToInt(a)
+	return string(r.Bytes())
 }
 
 // Pair calculates an Optimal Ate pairing.
