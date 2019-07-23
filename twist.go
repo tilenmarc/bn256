@@ -1,8 +1,8 @@
 package bn256
 
 import (
-	"math/big"
 	"fmt"
+	"math/big"
 )
 
 // twistPoint implements the elliptic curve y²=x³+3/ξ over GF(p²). Points are

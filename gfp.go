@@ -69,36 +69,41 @@ func (e *gfP) Unmarshal(in []byte) {
 func montEncode(c, a *gfP) { gfpMul(c, a, r2) }
 func montDecode(c, a *gfP) { gfpMul(c, a, &gfP{1}) }
 
-func gfPToInt(in *gfP) (*big.Int, error) {
-	in2 := &gfP{}
-	montDecode(in2, in)
-	out, succ := new(big.Int).SetString(in2.String(), 16)
+// ToInt returns a big.Int representation of e. An error is
+// returned if conversion failed.
+func (e *gfP) ToInt() (*big.Int, error) {
+	in := &gfP{}
+	montDecode(in, e)
+	out, succ := new(big.Int).SetString(in.String(), 16)
 	if succ == false {
-		return nil, fmt.Errorf("failed convertion")
+		return nil, fmt.Errorf("failed conversion")
 	}
 	return out, nil
 }
 
-func intToGfP(in *big.Int) (*gfP) {
+// SetInt sets e to a value given by a big.Int
+// from range [0, p).
+func (e *gfP) SetInt(in *big.Int) *gfP {
 	in2 := new(big.Int).Set(in)
-	out := &gfP{}
-	for i:=0; i<4; i++ {
-		out[i] = in2.Uint64()
+	for i := 0; i < 4; i++ {
+		e[i] = in2.Uint64()
 		in2.Rsh(in2, 64)
 	}
-	montEncode(out, out)
-	return out
+	montEncode(e, e)
+	return e
 }
 
+// Sqrt calculates a square root of an element
+// in the GF(p) group.
 func (e *gfP) Sqrt(g *gfP) (*gfP, error) {
-	gInt, err := gfPToInt(g)
+	gInt, err := g.ToInt()
 	if err != nil {
-		return nil, err
+		return e, err
 	}
 	gSqrt := new(big.Int).ModSqrt(gInt, p)
 	if gSqrt == nil {
-		return nil, fmt.Errorf("no sqare root")
+		return e, fmt.Errorf("no sqare root")
 	}
-	e.Set(intToGfP(gSqrt))
+	e.SetInt(gSqrt)
 	return e, nil
 }
