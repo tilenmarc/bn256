@@ -20,9 +20,9 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
-	"fmt"
 )
 
 func randomK(r io.Reader) (k *big.Int, err error) {
@@ -454,7 +454,6 @@ func RandomGT(r io.Reader) (*big.Int, *GT, error) {
 
 	return k, new(GT).ScalarBaseMult(k), nil
 }
-
 
 // returns number in P-representation: a_11*P^11 + ... + a_1*P^1 + a_0 where 0 <= a_i < P
 func intToPRepr(n *big.Int) []*big.Int {
