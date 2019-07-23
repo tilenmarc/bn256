@@ -4,7 +4,7 @@ package bn256
 // Pairing-Friendly Fields, Devegili et al.
 // http://eprint.iacr.org/2006/471.pdf.
 
-// gfP6 implements the field of size P⁶ as a cubic extension of gfP2 where τ³=ξ
+// gfP6 implements the field of size p⁶ as a cubic extension of gfP2 where τ³=ξ
 // and ξ=i+3.
 type gfP6 struct {
 	X, Y, Z gfP2 // value is xτ² + yτ + Z
@@ -60,11 +60,11 @@ func (e *gfP6) Frobenius(a *gfP6) *gfP6 {
 	return e
 }
 
-// FrobeniusP2 computes (xτ²+yτ+Z)^(P²) = xτ^(2p²) + yτ^(P²) + Z
+// FrobeniusP2 computes (xτ²+yτ+Z)^(p²) = xτ^(2p²) + yτ^(p²) + Z
 func (e *gfP6) FrobeniusP2(a *gfP6) *gfP6 {
 	// τ^(2p²) = τ²τ^(2p²-2) = τ²ξ^((2p²-2)/3)
 	e.X.MulScalar(&a.X, xiTo2PSquaredMinus2Over3)
-	// τ^(P²) = ττ^(P²-1) = τξ^((P²-1)/3)
+	// τ^(p²) = ττ^(p²-1) = τξ^((p²-1)/3)
 	e.Y.MulScalar(&a.Y, xiToPSquaredMinus1Over3)
 	e.Z.Set(&a.Z)
 	return e
@@ -173,7 +173,7 @@ func (e *gfP6) Invert(a *gfP6) *gfP6 {
 	// ftp://136.206.11.249/pub/crypto/pairings.pdf
 
 	// Here we can give a short explanation of how it works: let j be a cubic root of
-	// unity in GF(P²) so that 1+j+j²=0.
+	// unity in GF(p²) so that 1+j+j²=0.
 	// Then (xτ² + yτ + Z)(xj²τ² + yjτ + Z)(xjτ² + yj²τ + Z)
 	// = (xτ² + yτ + Z)(Cτ²+Bτ+A)
 	// = (X³ξ²+Y³ξ+Z³-3ξxyz) = F is an element of the base field (the norm).

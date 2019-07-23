@@ -82,7 +82,7 @@ func (e *gfP) ToInt() (*big.Int, error) {
 }
 
 // SetInt sets e to a value given by a big.Int
-// from range [0, P).
+// from range [0, p).
 func (e *gfP) SetInt(in *big.Int) *gfP {
 	in2 := new(big.Int).Set(in)
 	for i := 0; i < 4; i++ {
@@ -94,7 +94,7 @@ func (e *gfP) SetInt(in *big.Int) *gfP {
 }
 
 // Sqrt calculates a square root of an element
-// in the GF(P) group.
+// in the GF(p) group.
 func (e *gfP) Sqrt(g *gfP) (*gfP, error) {
 	gInt, err := g.ToInt()
 	if err != nil {

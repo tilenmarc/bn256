@@ -20,7 +20,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 )
@@ -78,7 +77,7 @@ func HashG1(m string) (*G1, error) {
 		gfpAdd(rhs, x3, three)
 
 		y, err = y.Sqrt(rhs) // TODO: what about -Y
-		if err == nil {      // alternatively, if Y is not needed, big.Jacobi(rhs, P) can be used to check if rhs is quadratic residue
+		if err == nil {      // alternatively, if Y is not needed, big.Jacobi(rhs, p) can be used to check if rhs is quadratic residue
 			// BN curve has cofactor 1 (all points of the curve form a group where we are operating),
 			// so X (now that we know rhs is QR) is an X-coordinate of some point in a cyclic group
 			point := &curvePoint{
@@ -243,7 +242,7 @@ func HashG2(m string) (*G2, error) {
 	xpoint, dblxpoint, trplxpoint, t1, t2, t3, f := &twistPoint{}, &twistPoint{}, &twistPoint{},
 		&twistPoint{}, &twistPoint{}, &twistPoint{}, &twistPoint{}
 	for {
-		// let's try to construct a point in F(P^2) as 1 + v*i
+		// let's try to construct a point in F(p^2) as 1 + v*i
 		x.Y = *newGFp(1)
 		x.X = *v
 
@@ -502,7 +501,7 @@ func MapStringToGT(msg string) (*GT, error) {
 	m.SetBytes([]byte(msg))
 	bound := new(big.Int).Exp(p, big.NewInt(12), nil)
 	if m.Cmp(bound) >= 0 {
-		return nil, fmt.Errorf("message is bigger than modulo, use key encapsulation")
+		return nil, errors.New("message is bigger than modulo, use key encapsulation")
 	}
 	a := intToPRepr(m)
 	g := &gfP12{}

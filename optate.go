@@ -158,7 +158,7 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	}
 
 	// In order to calculate Q1 we have to convert q from the sextic twist
-	// to the full GF(P^12) group, apply the Frobenius there, and convert
+	// to the full GF(p^12) group, apply the Frobenius there, and convert
 	// back.
 	//
 	// The twist isomorphism is (X', Y') -> (xω², yω³). If we consider just
@@ -166,8 +166,8 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	// where x̄ is the conjugate of X. If we are going to apply the inverse
 	// isomorphism we need a value with a single coefficient of ω² so we
 	// rewrite this as x̄ω^(2p-2)ω². ξ⁶ = ω and, due to the construction of
-	// P, 2p-2 is a multiple of six. Therefore we can rewrite as
-	// x̄ξ^((P-1)/3)ω² and applying the inverse isomorphism eliminates the
+	// p, 2p-2 is a multiple of six. Therefore we can rewrite as
+	// x̄ξ^((p-1)/3)ω² and applying the inverse isomorphism eliminates the
 	// ω².
 	//
 	// A similar argument can be made for the Y value.
@@ -178,10 +178,10 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	q1.Z.SetOne()
 	q1.T.SetOne()
 
-	// For Q2 we are applying the P² Frobenius. The two conjugations cancel
+	// For Q2 we are applying the p² Frobenius. The two conjugations cancel
 	// out and we are left only with the factors from the isomorphism. In
 	// the case of X, we end up with a pure number which is why
-	// xiToPSquaredMinus1Over3 is ∈ GF(P). With Y we get a factor of -1. We
+	// xiToPSquaredMinus1Over3 is ∈ GF(p). With Y we get a factor of -1. We
 	// ignore this to end up with -Q2.
 
 	minusQ2 := &twistPoint{}
@@ -203,13 +203,13 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	return ret
 }
 
-// finalExponentiation computes the (P¹²-1)/Order-th power of an element of
-// GF(P¹²) to obtain an element of GT (steps 13-15 of algorithm 1 from
+// finalExponentiation computes the (p¹²-1)/Order-th power of an element of
+// GF(p¹²) to obtain an element of GT (steps 13-15 of algorithm 1 from
 // http://cryptojedi.org/papers/dclxvi-20100714.pdf)
 func finalExponentiation(in *gfP12) *gfP12 {
 	t1 := &gfP12{}
 
-	// This is the P^6-Frobenius
+	// This is the p^6-Frobenius
 	t1.X.Neg(&in.X)
 	t1.Y.Set(&in.Y)
 

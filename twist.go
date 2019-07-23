@@ -1,13 +1,13 @@
 package bn256
 
 import (
-	"fmt"
 	"math/big"
+	"errors"
 )
 
-// twistPoint implements the elliptic curve Y²=X³+3/ξ over GF(P²). Points are
+// twistPoint implements the elliptic curve Y²=X³+3/ξ over GF(p²). Points are
 // kept in Jacobian form and T=Z² when valid. The group G₂ is the set of
-// n-torsion points of this curve over GF(P²) (where n = Order)
+// n-torsion points of this curve over GF(p²) (where n = Order)
 type twistPoint struct {
 	X, Y, Z, T gfP2
 }
@@ -201,7 +201,7 @@ func (c *twistPoint) Neg(a *twistPoint) {
 
 func (c *twistPoint) Frobenius(a *twistPoint) (*twistPoint, error) {
 	// We have to convert a from the sextic twist
-	// to the full GF(P^12) group, apply the Frobenius there, and convert
+	// to the full GF(p^12) group, apply the Frobenius there, and convert
 	// back.
 
 	// The twist isomorphism is (X', Y') -> (xω², yω³). If we consider just
@@ -209,12 +209,12 @@ func (c *twistPoint) Frobenius(a *twistPoint) (*twistPoint, error) {
 	// where x̄ is the conjugate of X. If we are going to apply the inverse
 	// isomorphism we need a value with a single coefficient of ω² so we
 	// rewrite this as x̄ω^(2p-2)ω². ξ⁶ = ω and, due to the construction of
-	// P, 2p-2 is a multiple of six. Therefore we can rewrite as
-	// x̄ξ^((P-1)/3)ω² and applying the inverse isomorphism eliminates the
+	// p, 2p-2 is a multiple of six. Therefore we can rewrite as
+	// x̄ξ^((p-1)/3)ω² and applying the inverse isomorphism eliminates the
 	// ω².
 	// A similar argument can be made for the Y value.
 	if !a.Z.IsOne() {
-		return nil, fmt.Errorf("a needs to be in affine coordinates")
+		return nil, errors.New("a needs to be in affine coordinates")
 	}
 	c.X.Conjugate(&(a.X))
 	c.X.Mul(&(c.X), xiToPMinus1Over3)
