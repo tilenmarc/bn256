@@ -5,11 +5,11 @@ import (
 	"math/big"
 )
 
-// twistPoint implements the elliptic curve y²=x³+3/ξ over GF(p²). Points are
-// kept in Jacobian form and t=z² when valid. The group G₂ is the set of
-// n-torsion points of this curve over GF(p²) (where n = Order)
+// twistPoint implements the elliptic curve Y²=X³+3/ξ over GF(P²). Points are
+// kept in Jacobian form and T=Z² when valid. The group G₂ is the set of
+// n-torsion points of this curve over GF(P²) (where n = Order)
 type twistPoint struct {
-	x, y, z, t gfP2
+	X, Y, Z, T gfP2
 }
 
 var twistB = &gfP2{
@@ -33,15 +33,15 @@ var twistGen = &twistPoint{
 
 func (c *twistPoint) String() string {
 	c.MakeAffine()
-	x, y := gfP2Decode(&c.x), gfP2Decode(&c.y)
+	x, y := gfP2Decode(&c.X), gfP2Decode(&c.Y)
 	return "(" + x.String() + ", " + y.String() + ")"
 }
 
 func (c *twistPoint) Set(a *twistPoint) {
-	c.x.Set(&a.x)
-	c.y.Set(&a.y)
-	c.z.Set(&a.z)
-	c.t.Set(&a.t)
+	c.X.Set(&a.X)
+	c.Y.Set(&a.Y)
+	c.Z.Set(&a.Z)
+	c.T.Set(&a.T)
 }
 
 // IsOnCurve returns true iff c is on the curve.
@@ -52,21 +52,21 @@ func (c *twistPoint) IsOnCurve() bool {
 	}
 
 	y2, x3 := &gfP2{}, &gfP2{}
-	y2.Square(&c.y)
-	x3.Square(&c.x).Mul(x3, &c.x).Add(x3, twistB)
+	y2.Square(&c.Y)
+	x3.Square(&c.X).Mul(x3, &c.X).Add(x3, twistB)
 
 	return *y2 == *x3
 }
 
 func (c *twistPoint) SetInfinity() {
-	c.x.SetZero()
-	c.y.SetOne()
-	c.z.SetZero()
-	c.t.SetZero()
+	c.X.SetZero()
+	c.Y.SetOne()
+	c.Z.SetZero()
+	c.T.SetZero()
 }
 
 func (c *twistPoint) IsInfinity() bool {
-	return c.z.IsZero()
+	return c.Z.IsZero()
 }
 
 func (c *twistPoint) Add(a, b *twistPoint) {
@@ -82,16 +82,16 @@ func (c *twistPoint) Add(a, b *twistPoint) {
 	}
 
 	// See http://hyperelliptic.org/EFD/g1p/auto-code/shortw/jacobian-0/addition/add-2007-bl.op3
-	z12 := (&gfP2{}).Square(&a.z)
-	z22 := (&gfP2{}).Square(&b.z)
-	u1 := (&gfP2{}).Mul(&a.x, z22)
-	u2 := (&gfP2{}).Mul(&b.x, z12)
+	z12 := (&gfP2{}).Square(&a.Z)
+	z22 := (&gfP2{}).Square(&b.Z)
+	u1 := (&gfP2{}).Mul(&a.X, z22)
+	u2 := (&gfP2{}).Mul(&b.X, z12)
 
-	t := (&gfP2{}).Mul(&b.z, z22)
-	s1 := (&gfP2{}).Mul(&a.y, t)
+	t := (&gfP2{}).Mul(&b.Z, z22)
+	s1 := (&gfP2{}).Mul(&a.Y, t)
 
-	t.Mul(&a.z, z12)
-	s2 := (&gfP2{}).Mul(&b.y, t)
+	t.Mul(&a.Z, z12)
+	s2 := (&gfP2{}).Mul(&b.Y, t)
 
 	h := (&gfP2{}).Sub(u2, u1)
 	xEqual := h.IsZero()
@@ -113,28 +113,28 @@ func (c *twistPoint) Add(a, b *twistPoint) {
 	t4 := (&gfP2{}).Square(r)
 	t.Add(v, v)
 	t6 := (&gfP2{}).Sub(t4, j)
-	c.x.Sub(t6, t)
+	c.X.Sub(t6, t)
 
-	t.Sub(v, &c.x) // t7
+	t.Sub(v, &c.X) // t7
 	t4.Mul(s1, j)  // t8
 	t6.Add(t4, t4) // t9
 	t4.Mul(r, t)   // t10
-	c.y.Sub(t4, t6)
+	c.Y.Sub(t4, t6)
 
-	t.Add(&a.z, &b.z) // t11
+	t.Add(&a.Z, &b.Z) // t11
 	t4.Square(t)      // t12
 	t.Sub(t4, z12)    // t13
 	t4.Sub(t, z22)    // t14
-	c.z.Mul(t4, h)
+	c.Z.Mul(t4, h)
 }
 
 func (c *twistPoint) Double(a *twistPoint) {
 	// See http://hyperelliptic.org/EFD/g1p/auto-code/shortw/jacobian-0/doubling/dbl-2009-l.op3
-	A := (&gfP2{}).Square(&a.x)
-	B := (&gfP2{}).Square(&a.y)
+	A := (&gfP2{}).Square(&a.X)
+	B := (&gfP2{}).Square(&a.Y)
 	C := (&gfP2{}).Square(B)
 
-	t := (&gfP2{}).Add(&a.x, B)
+	t := (&gfP2{}).Add(&a.X, B)
 	t2 := (&gfP2{}).Square(t)
 	t.Sub(t2, A)
 	t2.Sub(t, C)
@@ -144,17 +144,17 @@ func (c *twistPoint) Double(a *twistPoint) {
 	f := (&gfP2{}).Square(e)
 
 	t.Add(d, d)
-	c.x.Sub(f, t)
+	c.X.Sub(f, t)
 
 	t.Add(C, C)
 	t2.Add(t, t)
 	t.Add(t2, t2)
-	c.y.Sub(d, &c.x)
-	t2.Mul(e, &c.y)
-	c.y.Sub(t2, t)
+	c.Y.Sub(d, &c.X)
+	t2.Mul(e, &c.Y)
+	c.Y.Sub(t2, t)
 
-	t.Mul(&a.y, &a.z)
-	c.z.Add(t, t)
+	t.Mul(&a.Y, &a.Z)
+	c.Z.Add(t, t)
 }
 
 func (c *twistPoint) Mul(a *twistPoint, scalar *big.Int) {
@@ -173,30 +173,30 @@ func (c *twistPoint) Mul(a *twistPoint, scalar *big.Int) {
 }
 
 func (c *twistPoint) MakeAffine() {
-	if c.z.IsOne() {
+	if c.Z.IsOne() {
 		return
-	} else if c.z.IsZero() {
-		c.x.SetZero()
-		c.y.SetOne()
-		c.t.SetZero()
+	} else if c.Z.IsZero() {
+		c.X.SetZero()
+		c.Y.SetOne()
+		c.T.SetZero()
 		return
 	}
 
-	zInv := (&gfP2{}).Invert(&c.z)
-	t := (&gfP2{}).Mul(&c.y, zInv)
+	zInv := (&gfP2{}).Invert(&c.Z)
+	t := (&gfP2{}).Mul(&c.Y, zInv)
 	zInv2 := (&gfP2{}).Square(zInv)
-	c.y.Mul(t, zInv2)
-	t.Mul(&c.x, zInv2)
-	c.x.Set(t)
-	c.z.SetOne()
-	c.t.SetOne()
+	c.Y.Mul(t, zInv2)
+	t.Mul(&c.X, zInv2)
+	c.X.Set(t)
+	c.Z.SetOne()
+	c.T.SetOne()
 }
 
 func (c *twistPoint) Neg(a *twistPoint) {
-	c.x.Set(&a.x)
-	c.y.Neg(&a.y)
-	c.z.Set(&a.z)
-	c.t.SetZero()
+	c.X.Set(&a.X)
+	c.Y.Neg(&a.Y)
+	c.Z.Set(&a.Z)
+	c.T.SetZero()
 }
 
 func (c *twistPoint) Frobenius(a *twistPoint) (*twistPoint, error) {
@@ -213,15 +213,15 @@ func (c *twistPoint) Frobenius(a *twistPoint) (*twistPoint, error) {
 	// x̄ξ^((P-1)/3)ω² and applying the inverse isomorphism eliminates the
 	// ω².
 	// A similar argument can be made for the Y value.
-	if !a.z.IsOne() {
+	if !a.Z.IsOne() {
 		return nil, fmt.Errorf("a needs to be in affine coordinates")
 	}
-	c.x.Conjugate(&(a.x))
-	c.x.Mul(&(c.x), xiToPMinus1Over3)
-	c.y.Conjugate(&(a.y))
-	c.y.Mul(&(c.y), xiToPMinus1Over2)
-	c.z.SetOne()
-	c.t.SetOne()
+	c.X.Conjugate(&(a.X))
+	c.X.Mul(&(c.X), xiToPMinus1Over3)
+	c.Y.Conjugate(&(a.Y))
+	c.Y.Mul(&(c.Y), xiToPMinus1Over2)
+	c.Z.SetOne()
+	c.T.SetOne()
 
 	return c, nil
 }

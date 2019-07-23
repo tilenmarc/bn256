@@ -128,7 +128,7 @@ func TestBilinearity(t *testing.T) {
 		e2.ScalarMult(e2, a)
 		e2.ScalarMult(e2, b)
 
-		if *e1.p != *e2.p {
+		if *e1.P != *e2.P {
 			t.Fatalf("bad pairing result: %s", e1)
 		}
 	}
@@ -162,7 +162,7 @@ func TestTripartiteDiffieHellman(t *testing.T) {
 	k3Bytes := k3.Marshal()
 
 	if !bytes.Equal(k1Bytes, k2Bytes) || !bytes.Equal(k2Bytes, k3Bytes) {
-		t.Errorf("keys didn't agree")
+		t.Errorf("keys didn'T agree")
 	}
 }
 

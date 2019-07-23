@@ -3,12 +3,12 @@ package bn256
 func lineFunctionAdd(r, p *twistPoint, q *curvePoint, r2 *gfP2) (a, b, c *gfP2, rOut *twistPoint) {
 	// See the mixed addition algorithm from "Faster Computation of the
 	// Tate Pairing", http://arxiv.org/pdf/0904.0854v3.pdf
-	B := (&gfP2{}).Mul(&p.x, &r.t)
+	B := (&gfP2{}).Mul(&p.X, &r.T)
 
-	D := (&gfP2{}).Add(&p.y, &r.z)
-	D.Square(D).Sub(D, r2).Sub(D, &r.t).Mul(D, &r.t)
+	D := (&gfP2{}).Add(&p.Y, &r.Z)
+	D.Square(D).Sub(D, r2).Sub(D, &r.T).Mul(D, &r.T)
 
-	H := (&gfP2{}).Sub(B, &r.x)
+	H := (&gfP2{}).Sub(B, &r.X)
 	I := (&gfP2{}).Square(H)
 
 	E := (&gfP2{}).Add(I, I)
@@ -16,35 +16,35 @@ func lineFunctionAdd(r, p *twistPoint, q *curvePoint, r2 *gfP2) (a, b, c *gfP2, 
 
 	J := (&gfP2{}).Mul(H, E)
 
-	L1 := (&gfP2{}).Sub(D, &r.y)
-	L1.Sub(L1, &r.y)
+	L1 := (&gfP2{}).Sub(D, &r.Y)
+	L1.Sub(L1, &r.Y)
 
-	V := (&gfP2{}).Mul(&r.x, E)
+	V := (&gfP2{}).Mul(&r.X, E)
 
 	rOut = &twistPoint{}
-	rOut.x.Square(L1).Sub(&rOut.x, J).Sub(&rOut.x, V).Sub(&rOut.x, V)
+	rOut.X.Square(L1).Sub(&rOut.X, J).Sub(&rOut.X, V).Sub(&rOut.X, V)
 
-	rOut.z.Add(&r.z, H).Square(&rOut.z).Sub(&rOut.z, &r.t).Sub(&rOut.z, I)
+	rOut.Z.Add(&r.Z, H).Square(&rOut.Z).Sub(&rOut.Z, &r.T).Sub(&rOut.Z, I)
 
-	t := (&gfP2{}).Sub(V, &rOut.x)
+	t := (&gfP2{}).Sub(V, &rOut.X)
 	t.Mul(t, L1)
-	t2 := (&gfP2{}).Mul(&r.y, J)
+	t2 := (&gfP2{}).Mul(&r.Y, J)
 	t2.Add(t2, t2)
-	rOut.y.Sub(t, t2)
+	rOut.Y.Sub(t, t2)
 
-	rOut.t.Square(&rOut.z)
+	rOut.T.Square(&rOut.Z)
 
-	t.Add(&p.y, &rOut.z).Square(t).Sub(t, r2).Sub(t, &rOut.t)
+	t.Add(&p.Y, &rOut.Z).Square(t).Sub(t, r2).Sub(t, &rOut.T)
 
-	t2.Mul(L1, &p.x)
+	t2.Mul(L1, &p.X)
 	t2.Add(t2, t2)
 	a = (&gfP2{}).Sub(t2, t)
 
-	c = (&gfP2{}).MulScalar(&rOut.z, &q.y)
+	c = (&gfP2{}).MulScalar(&rOut.Z, &q.Y)
 	c.Add(c, c)
 
 	b = (&gfP2{}).Neg(L1)
-	b.MulScalar(b, &q.x).Add(b, b)
+	b.MulScalar(b, &q.X).Add(b, b)
 
 	return
 }
@@ -52,11 +52,11 @@ func lineFunctionAdd(r, p *twistPoint, q *curvePoint, r2 *gfP2) (a, b, c *gfP2, 
 func lineFunctionDouble(r *twistPoint, q *curvePoint) (a, b, c *gfP2, rOut *twistPoint) {
 	// See the doubling algorithm for a=0 from "Faster Computation of the
 	// Tate Pairing", http://arxiv.org/pdf/0904.0854v3.pdf
-	A := (&gfP2{}).Square(&r.x)
-	B := (&gfP2{}).Square(&r.y)
+	A := (&gfP2{}).Square(&r.X)
+	B := (&gfP2{}).Square(&r.Y)
 	C := (&gfP2{}).Square(B)
 
-	D := (&gfP2{}).Add(&r.x, B)
+	D := (&gfP2{}).Add(&r.X, B)
 	D.Square(D).Sub(D, A).Sub(D, C).Add(D, D)
 
 	E := (&gfP2{}).Add(A, A)
@@ -65,50 +65,50 @@ func lineFunctionDouble(r *twistPoint, q *curvePoint) (a, b, c *gfP2, rOut *twis
 	G := (&gfP2{}).Square(E)
 
 	rOut = &twistPoint{}
-	rOut.x.Sub(G, D).Sub(&rOut.x, D)
+	rOut.X.Sub(G, D).Sub(&rOut.X, D)
 
-	rOut.z.Add(&r.y, &r.z).Square(&rOut.z).Sub(&rOut.z, B).Sub(&rOut.z, &r.t)
+	rOut.Z.Add(&r.Y, &r.Z).Square(&rOut.Z).Sub(&rOut.Z, B).Sub(&rOut.Z, &r.T)
 
-	rOut.y.Sub(D, &rOut.x).Mul(&rOut.y, E)
+	rOut.Y.Sub(D, &rOut.X).Mul(&rOut.Y, E)
 	t := (&gfP2{}).Add(C, C)
 	t.Add(t, t).Add(t, t)
-	rOut.y.Sub(&rOut.y, t)
+	rOut.Y.Sub(&rOut.Y, t)
 
-	rOut.t.Square(&rOut.z)
+	rOut.T.Square(&rOut.Z)
 
-	t.Mul(E, &r.t).Add(t, t)
+	t.Mul(E, &r.T).Add(t, t)
 	b = (&gfP2{}).Neg(t)
-	b.MulScalar(b, &q.x)
+	b.MulScalar(b, &q.X)
 
-	a = (&gfP2{}).Add(&r.x, E)
+	a = (&gfP2{}).Add(&r.X, E)
 	a.Square(a).Sub(a, A).Sub(a, G)
 	t.Add(B, B).Add(t, t)
 	a.Sub(a, t)
 
-	c = (&gfP2{}).Mul(&rOut.z, &r.t)
-	c.Add(c, c).MulScalar(c, &q.y)
+	c = (&gfP2{}).Mul(&rOut.Z, &r.T)
+	c.Add(c, c).MulScalar(c, &q.Y)
 
 	return
 }
 
 func mulLine(ret *gfP12, a, b, c *gfP2) {
 	a2 := &gfP6{}
-	a2.y.Set(a)
-	a2.z.Set(b)
-	a2.Mul(a2, &ret.x)
-	t3 := (&gfP6{}).MulScalar(&ret.y, c)
+	a2.Y.Set(a)
+	a2.Z.Set(b)
+	a2.Mul(a2, &ret.X)
+	t3 := (&gfP6{}).MulScalar(&ret.Y, c)
 
 	t := (&gfP2{}).Add(b, c)
 	t2 := &gfP6{}
-	t2.y.Set(a)
-	t2.z.Set(t)
-	ret.x.Add(&ret.x, &ret.y)
+	t2.Y.Set(a)
+	t2.Z.Set(t)
+	ret.X.Add(&ret.X, &ret.Y)
 
-	ret.y.Set(t3)
+	ret.Y.Set(t3)
 
-	ret.x.Mul(&ret.x, t2).Sub(&ret.x, a2).Sub(&ret.x, &ret.y)
+	ret.X.Mul(&ret.X, t2).Sub(&ret.X, a2).Sub(&ret.X, &ret.Y)
 	a2.MulTau(a2)
-	ret.y.Add(&ret.y, a2)
+	ret.Y.Add(&ret.Y, a2)
 }
 
 // sixuPlus2NAF is 6u+2 in non-adjacent form.
@@ -133,7 +133,7 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	r := &twistPoint{}
 	r.Set(aAffine)
 
-	r2 := (&gfP2{}).Square(&aAffine.y)
+	r2 := (&gfP2{}).Square(&aAffine.Y)
 
 	for i := len(sixuPlus2NAF) - 1; i > 0; i-- {
 		a, b, c, newR := lineFunctionDouble(r, bAffine)
@@ -158,44 +158,44 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	}
 
 	// In order to calculate Q1 we have to convert q from the sextic twist
-	// to the full GF(p^12) group, apply the Frobenius there, and convert
+	// to the full GF(P^12) group, apply the Frobenius there, and convert
 	// back.
 	//
-	// The twist isomorphism is (x', y') -> (xω², yω³). If we consider just
-	// x for a moment, then after applying the Frobenius, we have x̄ω^(2p)
-	// where x̄ is the conjugate of x. If we are going to apply the inverse
+	// The twist isomorphism is (X', Y') -> (xω², yω³). If we consider just
+	// X for a moment, then after applying the Frobenius, we have x̄ω^(2p)
+	// where x̄ is the conjugate of X. If we are going to apply the inverse
 	// isomorphism we need a value with a single coefficient of ω² so we
 	// rewrite this as x̄ω^(2p-2)ω². ξ⁶ = ω and, due to the construction of
-	// p, 2p-2 is a multiple of six. Therefore we can rewrite as
-	// x̄ξ^((p-1)/3)ω² and applying the inverse isomorphism eliminates the
+	// P, 2p-2 is a multiple of six. Therefore we can rewrite as
+	// x̄ξ^((P-1)/3)ω² and applying the inverse isomorphism eliminates the
 	// ω².
 	//
-	// A similar argument can be made for the y value.
+	// A similar argument can be made for the Y value.
 
 	q1 := &twistPoint{}
-	q1.x.Conjugate(&aAffine.x).Mul(&q1.x, xiToPMinus1Over3)
-	q1.y.Conjugate(&aAffine.y).Mul(&q1.y, xiToPMinus1Over2)
-	q1.z.SetOne()
-	q1.t.SetOne()
+	q1.X.Conjugate(&aAffine.X).Mul(&q1.X, xiToPMinus1Over3)
+	q1.Y.Conjugate(&aAffine.Y).Mul(&q1.Y, xiToPMinus1Over2)
+	q1.Z.SetOne()
+	q1.T.SetOne()
 
-	// For Q2 we are applying the p² Frobenius. The two conjugations cancel
+	// For Q2 we are applying the P² Frobenius. The two conjugations cancel
 	// out and we are left only with the factors from the isomorphism. In
-	// the case of x, we end up with a pure number which is why
-	// xiToPSquaredMinus1Over3 is ∈ GF(p). With y we get a factor of -1. We
+	// the case of X, we end up with a pure number which is why
+	// xiToPSquaredMinus1Over3 is ∈ GF(P). With Y we get a factor of -1. We
 	// ignore this to end up with -Q2.
 
 	minusQ2 := &twistPoint{}
-	minusQ2.x.MulScalar(&aAffine.x, xiToPSquaredMinus1Over3)
-	minusQ2.y.Set(&aAffine.y)
-	minusQ2.z.SetOne()
-	minusQ2.t.SetOne()
+	minusQ2.X.MulScalar(&aAffine.X, xiToPSquaredMinus1Over3)
+	minusQ2.Y.Set(&aAffine.Y)
+	minusQ2.Z.SetOne()
+	minusQ2.T.SetOne()
 
-	r2.Square(&q1.y)
+	r2.Square(&q1.Y)
 	a, b, c, newR := lineFunctionAdd(r, q1, bAffine, r2)
 	mulLine(ret, a, b, c)
 	r = newR
 
-	r2.Square(&minusQ2.y)
+	r2.Square(&minusQ2.Y)
 	a, b, c, newR = lineFunctionAdd(r, minusQ2, bAffine, r2)
 	mulLine(ret, a, b, c)
 	r = newR
@@ -203,15 +203,15 @@ func miller(q *twistPoint, p *curvePoint) *gfP12 {
 	return ret
 }
 
-// finalExponentiation computes the (p¹²-1)/Order-th power of an element of
-// GF(p¹²) to obtain an element of GT (steps 13-15 of algorithm 1 from
+// finalExponentiation computes the (P¹²-1)/Order-th power of an element of
+// GF(P¹²) to obtain an element of GT (steps 13-15 of algorithm 1 from
 // http://cryptojedi.org/papers/dclxvi-20100714.pdf)
 func finalExponentiation(in *gfP12) *gfP12 {
 	t1 := &gfP12{}
 
-	// This is the p^6-Frobenius
-	t1.x.Neg(&in.x)
-	t1.y.Set(&in.y)
+	// This is the P^6-Frobenius
+	t1.X.Neg(&in.X)
+	t1.Y.Set(&in.Y)
 
 	inv := &gfP12{}
 	inv.Invert(in)
