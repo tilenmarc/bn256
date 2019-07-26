@@ -522,7 +522,7 @@ func MapStringToGT(msg string) (*GT, error) {
 	return &GT{g}, nil
 }
 
-// MapGTToString maps an element from GT group to a string
+// MapGTToString maps an element from GT group to a string.
 func MapGTToString(gt *GT) string {
 	a := make([]*big.Int, 12)
 	a[0], _ = gt.P.X.X.X.ToInt()
